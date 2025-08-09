@@ -1,7 +1,7 @@
 package main
 
 import (
-	"geekcamp-vol10-backend/end"
+	"geekcamp-vol10-backend/internal/end"
 
 	"github.com/gin-gonic/gin"
 )
