@@ -55,7 +55,7 @@
     ```bash
     go run ./cmd/server/main.go
     ```
-    サーバーは `http://localhost:8080` で起動します。
+    サーバーは `http://localhost:8081` で起動します。
 
 ---
 

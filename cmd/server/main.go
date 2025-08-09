@@ -18,12 +18,18 @@ func main() {
 		})
 	})
 
-	// /contributions エンドポイントを定義
-	//r.POST("/contributions/:id", middleware.AuthMiddleware(handlers.PostContribution))
-	r.POST("/contributions/:id", handlers.PostContribution)
+	// authが必要なエンドポイントにmiddleware/auth.goを適用
+	authRequired := r.Group("/")
+	authRequired.POST("/contributions/:id", handlers.PostContribution)
+	/*
+	authRequired.Use(middleware.AuthMiddleware())
+	{
+		authRequired.POST("/contributions/:id", handlers.PostContribution)
+	}
+	*/
 
 	// サーバーをポート8080で起動
-	if err := r.Run("localhost:8080"); err != nil {
+	if err := r.Run("localhost:8081"); err != nil {
 		// エラーが発生した場合、ログに詳細を出力してプログラムを終了する
 		log.Fatalf("サーバーの起動に失敗しました: %v", err)
 	}
