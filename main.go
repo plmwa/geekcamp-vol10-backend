@@ -26,6 +26,11 @@ func main() {
 			"message": "Goodbye, World!",
 		})
 	})
+	r.GET("/add-bye", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"message": "Goodbye, World!",
+		})
+	})
 
 	// サーバーをポート8080で起動
 	r.Run(":8080")
