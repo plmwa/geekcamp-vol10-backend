@@ -77,6 +77,15 @@ golangci-lint run
 ```bash
 go run main
 ```
+
+## APIエンドポイント
+POST /users/
+GET /users/{:id}
+
+POST /contributions/{:id}
+curl -X POST http://localhost:8081/contributions/{:id} -H 'Content-Type: application/json' -d '{"githubUserName":"plmwa"}'
+
+
 ---
 
 📜 ライセンス
