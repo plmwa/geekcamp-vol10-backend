@@ -1,0 +1,46 @@
+# 📱 Go(Gin)
+
+GitHubのコントリビューション数を使ってモンスターを封印するアプリのバックエンド  
+ユーザーは毎日の開発活動を通じてモンスターを弱らせ、完全に封印できます。
+
+---
+
+## 🚀 技術スタック
+
+- **フロントエンド**: React Native (Expo)
+- **バックエンド**: Go (Echo Framework)
+- **認証**: Firebase Authentication (GitHub OAuth)
+- **データベース**: Firestore
+- **API連携**: GitHub GraphQL API v4
+
+---
+
+## 🛠 機能概要
+
+- **GitHubログイン**（Firebase Authentication）
+- **コントリビューション取得**（GitHub GraphQL API）
+- **モンスター封印システム**  
+  - コントリビューション数に応じてモンスターのHPを減少
+  - HPが0になるとモンスター封印アニメーション
+- **ユーザーデータ保存**（Firestore）
+
+## ⚙️ セットアップ
+
+1. **リポジトリをクローン**
+```bash
+git clone git@github.com:plmwa/geekcamp-vol10-backend.git
+cd geekcamp-vol10-backend
+```
+
+2. **環境をインストール**
+```bash
+go mod download
+```
+3. **localでの起動**
+```bash
+go run main
+```
+---
+
+📜 ライセンス
+MIT License
