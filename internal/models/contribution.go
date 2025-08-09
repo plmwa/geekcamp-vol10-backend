@@ -15,16 +15,23 @@ type GithubResponse struct {
 	Data struct {
 		User struct {
 			ContributionsCollection struct {
-				ContributionCalendar struct {
-					Weeks []struct {
-						ContributionDays []struct {
-							Color             string `json:"color"`
-							ContributionCount int    `json:"contributionCount"`
-							Date              string `json:"date"`
-							Weekday           int    `json:"weekday"`
-						} `json:"contributionDays"`
-					} `json:"weeks"`
-				} `json:"contributionCalendar"`
+				CommitContributionsByRepository []struct {
+					Repository struct {
+						Name  string `json:"name"`
+						Owner struct {
+							Login string `json:"login"`
+						} `json:"owner"`
+					} `json:"repository"`
+					Contributions struct {
+						Nodes []struct {
+							CommitCount  int    `json:"commitCount"`
+							OccurredAt   string `json:"occurredAt"`
+							User struct {
+								Login string `json:"login"`
+							} `json:"user"`
+						} `json:"nodes"`
+					} `json:"contributions"`
+				} `json:"commitContributionsByRepository"`
 			} `json:"contributionsCollection"`
 		} `json:"user"`
 	} `json:"data"`

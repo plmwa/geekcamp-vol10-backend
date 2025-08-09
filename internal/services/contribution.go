@@ -19,18 +19,25 @@ func GetContributions(githubUserName, githubToken string) (models.GithubResponse
 		githubToken = c.GetHeader("Authorization")
 	}*/
 
-	// GitHub APIに送信するGraphQLクエリを定義 (変数を使用する安全な方法)
+	// GitHub APIに送信するGraphQLクエリを定義 (詳細な日時情報のみ)
 	query := `
         query($githubUserName: String!) {
             user(login: $githubUserName) {
                 contributionsCollection {
-                    contributionCalendar {
-                        weeks {
-                            contributionDays {
-                                color
-                                contributionCount
-                                date
-                                weekday
+                    commitContributionsByRepository {
+                        repository {
+                            name
+                            owner {
+                                login
+                            }
+                        }
+                        contributions(first: 100) {
+                            nodes {
+                                commitCount
+                                occurredAt
+                                user {
+                                    login
+                                }
                             }
                         }
                     }

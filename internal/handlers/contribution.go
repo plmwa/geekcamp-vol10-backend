@@ -56,7 +56,7 @@ func GetContribution(c *gin.Context) {
         })
         return
     }
-	
+
 	currentMonster, err := repositories.SaveContribution(id, githubData)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
