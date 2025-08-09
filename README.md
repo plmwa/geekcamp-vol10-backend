@@ -137,6 +137,7 @@
 * **リクエストボディ**:
     ```json
     {
+      "firebase_id":"abcdefg12345",
       "githubUserName": "plmwa",
       "photoURL": "https://avatars.githubusercontent.com/u/12345678?v=4"
     }
