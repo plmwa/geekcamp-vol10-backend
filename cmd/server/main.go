@@ -1,14 +1,33 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"github.com/gin-gonic/gin"
 	"geekcamp-vol10-backend/internal/handlers"
+	"geekcamp-vol10-backend/internal/config"
+	"geekcamp-vol10-backend/pkg/database"
 	//"geekcamp-vol10-backend/internal/middleware"
 )
 
 func main() {
+	// 設定を読み込み
+	cfg := config.LoadConfig()
+	
+	// Firestoreを初期化
+	ctx := context.Background()
+	if err := database.InitializeFirestore(ctx, cfg); err != nil {
+		log.Fatalf("Firestore の初期化に失敗しました: %v", err)
+	}
+	
+	// アプリケーション終了時にFirestoreクライアントをクローズ
+	defer func() {
+		if err := database.CloseFirestore(); err != nil {
+			log.Printf("Firestore のクローズに失敗しました: %v", err)
+		}
+	}()
+
 	// Ginルーターを初期化
 	r := gin.Default()
 

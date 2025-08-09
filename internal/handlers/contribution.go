@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 	"os"
 	"fmt"
@@ -24,7 +25,12 @@ func GetContribution(c *gin.Context) {
 
 	// UserNameは:idを用いてDBから抽出する
 	// アクセストークンはHeaderの中のAuthorizationから取得する
-	githubUserName := repositories.GetGitHubUserNameByID(id)
+	ctx := context.Background()
+	githubUserName, err := repositories.GetGitHubUserNameByID(ctx, id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "ユーザーが見つかりません"})
+		return
+	}
 	githubToken := os.Getenv("GITHUB_TOKEN")
 	// tokenはc.Contextの中に入っているので、そこから取得する
 	// Middlewareで設定した値を取得
@@ -50,8 +56,9 @@ func GetContribution(c *gin.Context) {
         })
         return
     }
-	currentMonster := repositories.SaveContribution(id, githubData)
-	if currentMonster == nil {
+	
+	currentMonster, err := repositories.SaveContribution(id, githubData)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "内部エラーが発生しました",
 		})

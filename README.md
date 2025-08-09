@@ -77,7 +77,7 @@
           "name": "スライム",
           "description": "最も基本的なモンスター。まずはこいつを倒すことから始まる。",
           "imageURL": "https://example.com/images/slime.png",
-          "requiredContributions": 30
+          "requiredContributions": 30,
         }
         ```
 
@@ -159,13 +159,6 @@
       "createdAt": "2025-06-01T10:00:00Z",
       "continuousSealRecord": 0,
       "maxSealRecord": 0,
-      "currentMonster": {
-        "monsterId": "001", // 初期モンスター
-        "progressContributions": 0,
-        "requiredContributions": 30,
-        "lastContributionReflectedAt": "2025-06-01T10:00:00Z",
-        "assignedAt": "2025-06-01T10:00:00Z"
-      }
     }
     ```
 
