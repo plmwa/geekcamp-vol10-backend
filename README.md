@@ -93,13 +93,6 @@
           "createdAt": "2025-06-01T10:00:00Z",
           "continuousSealRecord": 0,
           "maxSealRecord": 0,
-          "currentMonster": {
-            "monsterId": "002",
-            "progressContributions": 25,
-            "requiredContributions": 30,
-            "lastContributionReflectedAt": "2025-08-08T22:15:00Z",
-            "assignedAt": "2025-08-01T18:00:00Z"
-          }
         }
         ```
         * `sealedMonsters` **(サブコレクション)**
