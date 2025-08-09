@@ -2,7 +2,7 @@ package main
 
 import (
 	"net/http"
-
+	"log"
 	"github.com/gin-gonic/gin"
 )
 
@@ -26,7 +26,16 @@ func main() {
 			"message": "Goodbye, World!",
 		})
 	})
+	r.GET("/add-bye", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"message": "Goodbye, World!",
+		})
+	})
 
 	// サーバーをポート8080で起動
-	r.Run(":8080")
+	// r.Runが返すエラーをチェックする
+	if err := r.Run("localhost:8080"); err != nil {
+		// エラーが発生した場合、ログに詳細を出力してプログラムを終了する
+		log.Fatalf("サーバーの起動に失敗しました: %v", err)
+	}
 }

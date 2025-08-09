@@ -33,10 +33,18 @@ cd geekcamp-vol10-backend
 ```
 
 2. **環境をインストール**
+環境はgo 1.24.6 入れてください
 ```bash
 go mod download
 ```
-3. **localでの起動**
+
+3. Lintの設定(ローカルに必要ない人はやらなくても良いです)
+```
+go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+golangci-lint run
+```
+
+4. **localでの起動**
 ```bash
 go run main
 ```
