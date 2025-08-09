@@ -69,8 +69,9 @@
 * `monsters` **(コレクション)**
     <br>モンスターのマスターデータを格納します。
     * `{monster_id}` **(ドキュメント)**
+      <br>モンスターIDは"001","002"...のstringを使用
         ```json
-        // Path: /monsters/monster-001
+        // Path: /monsters/001
         // 一例
         {
           "name": "スライム",
@@ -93,7 +94,7 @@
           "continuousSealRecord": 0,
           "maxSealRecord": 0,
           "currentMonster": {
-            "monsterId": 2,
+            "monsterId": "002",
             "progressContributions": 25,
             "requiredContributions": 30,
             "lastContributionReflectedAt": "2025-08-08T22:15:00Z",
@@ -108,9 +109,24 @@
                 ```json
                 // Path: /users/{firebase_uid}/sealedMonsters/{seal_id}
                 {
-                  "monsterId": 1,
+                  "monsterId": "001",
                   "monsterName": "スライム",
                   "sealedAt": "2025-07-31T23:50:00Z"
+                }
+                ```
+                ```
+        * `currentMonster` **(サブコレクション)**
+            <br>そのユーザーが現在封印中のモンスターを表示
+            * `{なんでもいいです、自動生成で}` **(ドキュメント)**
+                <br>自動生成されたIDを持つドキュメントです。
+                ```json
+                // Path: /users/{firebase_uid}/currentMonster/{自動生成ID}
+                {
+                  "monsterId": "002",
+                  "progressContributions": 25,
+                  "requiredContributions": 30,
+                  "lastContributionReflectedAt": "2025-08-08T22:15:00Z",
+                  "assignedAt": "2025-08-01T18:00:00Z"
                 }
                 ```
 
@@ -151,7 +167,7 @@
       "continuousSealRecord": 0,
       "maxSealRecord": 0,
       "currentMonster": {
-        "monsterId": "monster-001", // 初期モンスター
+        "monsterId": "001", // 初期モンスター
         "progressContributions": 0,
         "requiredContributions": 30,
         "lastContributionReflectedAt": "2025-06-01T10:00:00Z",
@@ -171,7 +187,7 @@
       "continuousSealRecord": 3,
       "maxSealRecord": 8,
       "currentMonster": {
-        "monsterId": "monster-002",
+        "monsterId": "002",
         "progressContributions": 25,
         "requiredContributions": 30,
         "lastContributionReflectedAt": "2025-08-08T22:15:00Z",
@@ -188,7 +204,7 @@ GitHubから最新のコントリビューションを取得し、モンスタ�
 * **レスポンス (200 OK)**: 更新後のモンスターの育成状況。
     ```json
     {
-      "monsterId": "monster-002",
+      "monsterId": "002",
       "progressContributions": 25,
       "requiredContributions": 30,
       "lastContributionReflectedAt": "2025-08-09T22:50:00Z", // 更新日時
@@ -201,7 +217,7 @@ GitHubから最新のコントリビューションを取得し、モンスタ�
 * **レスポンス (200 OK)**:
     ```json
     {
-      "monsterId": "monster-002",
+      "monsterId": "002",
       "progressContributions": 25,
       "requiredContributions": 30,
       "lastContributionReflectedAt": "2025-08-08T22:15:00Z",
