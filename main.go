@@ -1,7 +1,7 @@
 package main
 
 import (
-	"net/http"
+	"geekcamp-vol10-backend/end"
 
 	"github.com/gin-gonic/gin"
 )
@@ -11,21 +11,9 @@ func main() {
 	r := gin.Default()
 
 	// /ping エンドポイントを定義
-	r.GET("/ping", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"message": "peng",
-		})
-	})
-	r.GET("/hello", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"message": "Hello, World!",
-		})
-	})
-	r.GET("/bye", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"message": "Goodbye, World!",
-		})
-	})
+	r.GET("/ping", end.Ping)
+	r.GET("/hello", end.Hello)
+	r.GET("/bye", end.Bye)
 
 	// サーバーをポート8080で起動
 	r.Run(":8080")
