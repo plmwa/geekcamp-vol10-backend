@@ -92,10 +92,23 @@ func AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
+		// トークンのClaims(クレーム)からGitHubのアクセストークンを抽出
+		claims := token.Claims
+		githubAccessToken, ok := claims["githubAccessToken"].(string) // ゆうきさんに確認、claimsに入れてもらう？
+		if !ok {
+			// カスタムクレームが存在しない、または文字列ではない場合
+			log.Printf("UID: %s のトークンに 'githubAccessToken' が見つかりません。", token.UID)
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "GitHubアクセストークンが見つかりません"})
+			return
+		}
+
 		// (オプション) 検証したユーザーIDをContextに保存して、後続のハンドラで利用できるようにします
 		c.Set("firebase_uid", token.UID)
+		c.Set("githubAccessToken", githubAccessToken)
 
 		// 検証に成功した場合、次の処理（ハンドラ）へ進みます
 		c.Next()
 	}
 }
+
+func Auth

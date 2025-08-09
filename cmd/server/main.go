@@ -20,11 +20,11 @@ func main() {
 
 	// authが必要なエンドポイントにmiddleware/auth.goを適用
 	authRequired := r.Group("/")
-	authRequired.POST("/contributions/:id", handlers.PostContribution)
+	authRequired.GET("/contributions/:id", handlers.GetContribution)
 	/*
 	authRequired.Use(middleware.AuthMiddleware())
 	{
-		authRequired.POST("/contributions/:id", handlers.PostContribution)
+		authRequired.GET("/contributions/:id", handlers.GetContribution)
 	}
 	*/
 
