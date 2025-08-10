@@ -5,38 +5,44 @@ import (
 	"fmt"
 	"log"
 	"time"
+	
+	"cloud.google.com/go/firestore"
 	"geekcamp-vol10-backend/internal/models"
 	"geekcamp-vol10-backend/internal/repositories"
 	"geekcamp-vol10-backend/pkg/database"
 )
 
-type UserService struct {
-	UserRepo *repositories.UserRepository
-}
 
-func NewUserService(repo *repositories.UserRepository) *UserService {
-	return &UserService{UserRepo: repo}
-}
-
-func (s *UserService) CreateUser(ctx context.Context, firebaseId, githubUserName, photoURL string) (map[string]interface{}, error) {
+func CreateUser(ctx context.Context, db *firestore.Client, firebaseId, githubUserName, photoURL string) (map[string]interface{}, error) {
 	log.Printf("CreateUser: 新しいユーザーを作成中 - FirebaseId: %s", firebaseId)
 	
 	user := models.User{
 		FirebaseId:           firebaseId,
 		GithubUserName:       githubUserName,
 		PhotoURL:             photoURL,
-		CreatedAt:            time.Now().Unix(),
+		CreatedAt:            time.Now(),
 		ContinuousSealRecord: 0,
 		MaxSealRecord:        0,
 	}
 
-	if err := s.UserRepo.SaveUser(ctx, user); err != nil {
+	if err := repositories.SaveUser(ctx, db, user); err != nil {
 		log.Printf("CreateUser: ユーザー保存に失敗: %v", err)
 		return nil, err
 	}
 
 	log.Printf("CreateUser: ユーザー作成完了")
-	return s.UserRepo.GetUser(ctx, firebaseId)
+	
+	// 作成したユーザー情報を返す
+	userData := map[string]interface{}{
+		"firebaseId":           user.FirebaseId,
+		"githubUserName":       user.GithubUserName,
+		"photoURL":             user.PhotoURL,
+		"createdAt":            user.CreatedAt,
+		"continuousSealRecord": user.ContinuousSealRecord,
+		"maxSealRecord":        user.MaxSealRecord,
+	}
+	
+	return userData, nil
 }
 
 

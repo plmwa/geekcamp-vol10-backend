@@ -59,10 +59,12 @@ func SaveContribution(id string, githubData models.GithubResponse) (models.Curre
 	currentMonsterDoc := docs[0]
 	currentMonsterData := currentMonsterDoc.Data()
 	log.Printf("currentMonsterサブコレクションのデータ: %+v", currentMonsterData)
+	log.Printf("currentMonsterドキュメントID（monsterId）: %s", currentMonsterDoc.Ref.ID)
 	
 	// 現在のcurrentMonster情報を取得
+	// MonsterIdはドキュメントIDから取得
 	currentMonster := models.CurrentMonster{
-		MonsterId:                   getString(currentMonsterData, "monsterId"),
+		MonsterId:                   currentMonsterDoc.Ref.ID, // ドキュメントIDがmonsterIdになる
 		ProgressContributions:       getInt(currentMonsterData, "progressContributions"),
 		RequiredContributions:       getInt(currentMonsterData, "requiredContributions"),
 		LastContributionReflectedAt: getTimestampAsTime(currentMonsterData, "lastContributionReflectedAt"),
@@ -71,8 +73,14 @@ func SaveContribution(id string, githubData models.GithubResponse) (models.Curre
 	
 	// lastContributionReflectedAtよりも最新のコントリビューションをgithubDataから取り出す
 	lastReflectedTime := currentMonster.LastContributionReflectedAt
+	log.Printf("currentMonster.LastContributionReflectedAt: %v", currentMonster.LastContributionReflectedAt)
+	log.Printf("lastReflectedTime.IsZero(): %t", lastReflectedTime.IsZero())
+	
 	if lastReflectedTime.IsZero() {
 		lastReflectedTime = time.Now().AddDate(0, 0, -30) // 30日前をデフォルトとする
+		log.Printf("初回実行のため、30日前を基準時刻に設定: %v", lastReflectedTime)
+	} else {
+		log.Printf("前回反映時刻を基準に使用: %v", lastReflectedTime)
 	}
 	
 	// GitHubデータから新しいコントリビューションを計算
@@ -146,6 +154,13 @@ func SaveContribution(id string, githubData models.GithubResponse) (models.Curre
 			return models.CurrentMonster{}, fmt.Errorf("新しいcurrentMonster保存に失敗しました")
 		}
 		
+		// ユーザーのcontinuousSealRecordとmaxSealRecordを更新（モンスター封印時は常に更新）
+		err = updateUserSealRecords(ctx, db, id, userData, now, true, githubData)
+		if err != nil {
+			log.Printf("ユーザーのsealRecord更新に失敗しました: %v", err)
+			// sealRecord更新の失敗は処理を止めない（ログのみ出力）
+		}
+		
 		return newCurrentMonster, nil
 	} else {
 		// progressContributionsを更新するだけ
@@ -158,6 +173,17 @@ func SaveContribution(id string, githubData models.GithubResponse) (models.Curre
 		if err != nil {
 			log.Printf("currentMonster更新に失敗しました: %v", err)
 			return models.CurrentMonster{}, fmt.Errorf("currentMonster更新に失敗しました")
+		}
+		
+		// コントリビューションがある場合のみユーザーのsealRecordを更新
+		if newContributions > 0 {
+			err = updateUserSealRecords(ctx, db, id, userData, now, true, githubData)
+			if err != nil {
+				log.Printf("ユーザーのsealRecord更新に失敗しました: %v", err)
+				// sealRecord更新の失敗は処理を止めない（ログのみ出力）
+			}
+		} else {
+			log.Printf("新しいコントリビューションがないため、sealRecord更新をスキップ")
 		}
 		
 		return updatedCurrentMonster, nil
@@ -268,9 +294,15 @@ func getTimestampAsTime(data map[string]interface{}, key string) time.Time {
 // GitHubデータから指定した日時以降の新しいコントリビューションを計算
 func calculateNewContributions(githubData models.GithubResponse, lastReflectedTime time.Time) int {
 	totalNewContributions := 0
+	processedDates := make(map[string]bool) // 処理済み日付を追跡
 	
 	// 詳細な日時情報のみを使用してコントリビューションを計算
 	log.Printf("詳細な日時情報を使用してコントリビューションを計算します")
+	log.Printf("基準時刻（lastReflectedTime）: %v", lastReflectedTime)
+	
+	// lastReflectedTimeの日付を取得
+	lastReflectedDate := lastReflectedTime.Format("2006-01-02")
+	log.Printf("基準日付: %s", lastReflectedDate)
 	
 	for _, repoContrib := range githubData.Data.User.ContributionsCollection.CommitContributionsByRepository {
 		repoName := repoContrib.Repository.Owner.Login + "/" + repoContrib.Repository.Name
@@ -283,14 +315,35 @@ func calculateNewContributions(githubData models.GithubResponse, lastReflectedTi
 				continue
 			}
 			
-			// lastReflectedTimeより後のコントリビューションのみを計算
-			if occurredTime.After(lastReflectedTime) {
+			// コントリビューションの日付を取得
+			contributionDate := occurredTime.Format("2006-01-02")
+			
+			// 時刻の詳細な比較ログ
+			timeDiff := occurredTime.Sub(lastReflectedTime)
+			isAfter := occurredTime.After(lastReflectedTime)
+			
+			log.Printf("=== コントリビューション時刻比較 ===")
+			log.Printf("コントリビューション時刻: %v (日付: %s)", occurredTime, contributionDate)
+			log.Printf("基準時刻（lastReflected）: %v (日付: %s)", lastReflectedTime, lastReflectedDate)
+			log.Printf("時刻差（秒）: %v", timeDiff.Seconds())
+			log.Printf("After判定: %t", isAfter)
+			
+			// 日付ベースの重複チェック
+			dateKey := fmt.Sprintf("%s:%s", repoName, contributionDate)
+			if processedDates[dateKey] {
+				log.Printf("同日の重複コントリビューションをスキップ: %s", dateKey)
+				continue
+			}
+			
+			// 基準日付より後の日付のコントリビューションのみを計算
+			if contributionDate > lastReflectedDate {
 				totalNewContributions += contribution.CommitCount
-				log.Printf("新しいコントリビューション追加: リポジトリ=%s, 日時=%s, コミット数=%d", 
-					repoName, contribution.OccurredAt, contribution.CommitCount)
+				processedDates[dateKey] = true
+				log.Printf("新しいコントリビューション追加: リポジトリ=%s, 日付=%s, コミット数=%d", 
+					repoName, contributionDate, contribution.CommitCount)
 			} else {
-				log.Printf("既に反映済みのコントリビューションをスキップ: リポジトリ=%s, 日時=%s, コミット数=%d", 
-					repoName, contribution.OccurredAt, contribution.CommitCount)
+				log.Printf("既に反映済みの日付のコントリビューションをスキップ: リポジトリ=%s, 日付=%s, コミット数=%d", 
+					repoName, contributionDate, contribution.CommitCount)
 			}
 		}
 	}
@@ -366,29 +419,164 @@ func getNextMonster(ctx context.Context, db *firestore.Client, currentMonsterID 
 	
 	log.Printf("次のモンスター情報: ID=%s, 必要コントリビューション数=%d", nextMonsterID, requiredContributions)
 	
+	// 新しいモンスターの lastContributionReflectedAt を今日の終了時刻に設定
+	now := time.Now()
+	endOfToday := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 999999999, now.Location())
+	
 	return models.CurrentMonster{
 		MonsterId:             nextMonsterID,
 		RequiredContributions: requiredContributions,
 		ProgressContributions: 0, // 新しいモンスターは0からスタート
-		AssignedAt:           time.Now(),
-		LastContributionReflectedAt: time.Now(),
+		AssignedAt:           now,
+		LastContributionReflectedAt: endOfToday,
 	}, nil
 }
 
 // currentMonsterを更新
 func updateCurrentMonster(ctx context.Context, db *firestore.Client, userID, docID string, monster models.CurrentMonster) error {
 	updateData := map[string]interface{}{
-		"monsterId":                   monster.MonsterId,
 		"progressContributions":       monster.ProgressContributions,
 		"requiredContributions":       monster.RequiredContributions,
 		"lastContributionReflectedAt": monster.LastContributionReflectedAt,
 		"assignedAt":                  monster.AssignedAt,
 	}
 	
-	_, err := db.Collection("users").Doc(userID).Collection("currentMonster").Doc(docID).Set(ctx, updateData)
-	if err != nil {
-		return fmt.Errorf("currentMonsterの更新に失敗しました: %v", err)
+	// 新しいモンスターの場合、ドキュメントIDも変更する必要がある
+	if docID != monster.MonsterId {
+		log.Printf("新しいモンスターのため、ドキュメントを置き換えます: %s -> %s", docID, monster.MonsterId)
+		
+		// 古いドキュメントを削除
+		_, err := db.Collection("users").Doc(userID).Collection("currentMonster").Doc(docID).Delete(ctx)
+		if err != nil {
+			log.Printf("古いcurrentMonsterドキュメントの削除に失敗: %v", err)
+		}
+		
+		// 新しいドキュメントを作成
+		_, err = db.Collection("users").Doc(userID).Collection("currentMonster").Doc(monster.MonsterId).Set(ctx, updateData)
+		if err != nil {
+			return fmt.Errorf("新しいcurrentMonsterの作成に失敗しました: %v", err)
+		}
+	} else {
+		// 同じモンスターの場合は既存ドキュメントを更新
+		_, err := db.Collection("users").Doc(userID).Collection("currentMonster").Doc(docID).Set(ctx, updateData)
+		if err != nil {
+			return fmt.Errorf("currentMonsterの更新に失敗しました: %v", err)
+		}
 	}
 	
 	return nil
+}
+
+// ユーザーのcontinuousSealRecordとmaxSealRecordを更新
+func updateUserSealRecords(ctx context.Context, db *firestore.Client, userID string, userData map[string]interface{}, now time.Time, hasNewContributions bool, githubData models.GithubResponse) error {
+	log.Printf("ユーザー '%s' のsealRecord更新を開始 (新しいコントリビューション: %t)", userID, hasNewContributions)
+	
+	// 新しいコントリビューションがない場合は更新しない
+	if !hasNewContributions {
+		log.Printf("新しいコントリビューションがないため、sealRecord更新をスキップ")
+		return nil
+	}
+	
+	// 現在のcontinuousSealRecordとmaxSealRecordを取得
+	currentContinuous := getInt(userData, "continuousSealRecord")
+	currentMax := getInt(userData, "maxSealRecord")
+	
+	// lastContributionReflectedAtを取得（ユーザーコレクションから）
+	lastContributionTime := getTimestampAsTime(userData, "lastContributionReflectedAt")
+	
+	// 初回の場合はlastContributionTimeが0値になるので、現在時刻を設定
+	if lastContributionTime.IsZero() {
+		lastContributionTime = now.AddDate(0, 0, -2) // 2日前に設定して確実にリセット
+		log.Printf("初回実行のため、lastContributionTimeを2日前に設定: %v", lastContributionTime)
+	}
+	
+	// GitHubデータから最新のコントリビューション時刻を取得
+	latestContributionTime := getLatestContributionTime(githubData, lastContributionTime)
+	log.Printf("最新のコントリビューション時刻: %v", latestContributionTime)
+	log.Printf("前回のコントリビューション反映時刻: %v", lastContributionTime)
+	
+	// 最新のコントリビューション時刻と前回反映時刻の差を計算
+	var timeDiff time.Duration
+	var isWithinOneDay bool
+	
+	if !latestContributionTime.IsZero() {
+		timeDiff = latestContributionTime.Sub(lastContributionTime)
+		isWithinOneDay = timeDiff <= 24*time.Hour && timeDiff > 0
+		log.Printf("コントリビューション時刻差: %v", timeDiff)
+	} else {
+		// GitHubデータから時刻が取得できない場合は、現在時刻を基準にする
+		timeDiff = now.Sub(lastContributionTime)
+		isWithinOneDay = timeDiff <= 24*time.Hour
+		log.Printf("GitHubデータから時刻取得不可、現在時刻で判定: %v", timeDiff)
+	}
+	
+	log.Printf("1日以内: %t", isWithinOneDay)
+	log.Printf("現在のcontinuousSealRecord: %d", currentContinuous)
+	log.Printf("現在のmaxSealRecord: %d", currentMax)
+	
+	var newContinuous int
+	var newMax int
+	
+	if isWithinOneDay {
+		// 1日以内の場合、continuousSealRecordを+1
+		newContinuous = currentContinuous + 1
+		log.Printf("1日以内のため、continuousSealRecordを+1: %d -> %d", currentContinuous, newContinuous)
+	} else {
+		// 1日以上経過している場合、continuousSealRecordを1にリセット
+		newContinuous = 1
+		log.Printf("1日以上経過のため、continuousSealRecordを1にリセット: %d -> %d", currentContinuous, newContinuous)
+	}
+	
+	// maxSealRecordを更新（新しいcontinuousが最大値を超えた場合）
+	if newContinuous > currentMax {
+		newMax = newContinuous
+		log.Printf("新記録！maxSealRecordを更新: %d -> %d", currentMax, newMax)
+	} else {
+		newMax = currentMax
+		log.Printf("maxSealRecordは変更なし: %d", newMax)
+	}
+	
+	// lastContributionReflectedAtを今日の終了時刻（23:59:59）に更新
+	// これにより、同じ日のコントリビューションの重複処理を防ぐ
+	endOfToday := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 999999999, now.Location())
+	
+	// Firestoreを更新
+	_, err := db.Collection("users").Doc(userID).Update(ctx, []firestore.Update{
+		{Path: "continuousSealRecord", Value: newContinuous},
+		{Path: "maxSealRecord", Value: newMax},
+		{Path: "lastContributionReflectedAt", Value: endOfToday},
+	})
+	
+	if err != nil {
+		log.Printf("ユーザーsealRecord更新エラー: %v", err)
+		return fmt.Errorf("ユーザーsealRecord更新に失敗: %v", err)
+	}
+	
+	log.Printf("ユーザー '%s' のsealRecord更新完了: continuous=%d, max=%d", userID, newContinuous, newMax)
+	return nil
+}
+
+// GitHubデータから最新のコントリビューション時刻を取得
+func getLatestContributionTime(githubData models.GithubResponse, lastReflectedTime time.Time) time.Time {
+	var latestTime time.Time
+	
+	for _, repoContrib := range githubData.Data.User.ContributionsCollection.CommitContributionsByRepository {
+		for _, contribution := range repoContrib.Contributions.Nodes {
+			occurredTime, err := time.Parse(time.RFC3339, contribution.OccurredAt)
+			if err != nil {
+				log.Printf("コントリビューション時刻のパースに失敗: %s, エラー: %v", contribution.OccurredAt, err)
+				continue
+			}
+			
+			// lastReflectedTimeより後のコントリビューションのみを対象とする
+			if occurredTime.After(lastReflectedTime) {
+				if latestTime.IsZero() || occurredTime.After(latestTime) {
+					latestTime = occurredTime
+					log.Printf("最新コントリビューション時刻を更新: %v", latestTime)
+				}
+			}
+		}
+	}
+	
+	return latestTime
 }
