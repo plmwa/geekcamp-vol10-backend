@@ -21,15 +21,7 @@ func SaveContribution(id string, githubData models.GithubResponse) (models.Curre
 		log.Printf("Firestoreクライアントが初期化されていません")
 		return models.CurrentMonster{}, fmt.Errorf("Firestoreクライアントが初期化されていません")
 	}
-
-	// dbからcurrentMonsterのprogressContributionsとrequiredContributionsとlastContributionReflectedAtを取得
-	// lastContributionReflectedAtよりも最新のコントリビューションをgithubDataから取り出す
-	// 取り出したgithubDataのContributionCountを合計する
-	// 合計した値をprogressContributionsに足す
-	// progressContributionsがrequiredContributionsを超えた場合、currentMonsterを更新する
-	// 更新するのはcurrentMonsterのmonsterIdに1を足したmonsterIdを持つMonsterscollectionのドキュメントである
-
-
+	
 	// currentMonsterはサブコレクション
 	// 最初にusersドキュメントを取得
 	userDoc, err := db.Collection("users").Doc(id).Get(ctx)

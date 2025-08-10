@@ -4,13 +4,11 @@ import (
 	"context"
 	"log"
 	"net/http"
-
 	"github.com/gin-gonic/gin"
-
 	"geekcamp-vol10-backend/internal/config"
 	"geekcamp-vol10-backend/internal/handlers"
 	"geekcamp-vol10-backend/pkg/database"
-	//"geekcamp-vol10-backend/internal/middleware"
+	"geekcamp-vol10-backend/internal/middleware"
 )
 
 func main() {
@@ -42,15 +40,14 @@ func main() {
 
 	// authが必要なエンドポイントにmiddleware/auth.goを適用
 	authRequired := r.Group("/")
-	authRequired.POST("/users", handlers.Users)
-	authRequired.GET("/users/:id", handlers.GETUser)
-	authRequired.GET("/contributions/:id", handlers.GetContribution)
-	/*
-		authRequired.Use(middleware.AuthMiddleware())
-		{
-			authRequired.GET("/contributions/:id", handlers.GetContribution)
-		}
-	*/
+
+	authRequired.Use(middleware.AuthMiddleware())
+	{
+		authRequired.POST("/users", handlers.Users)
+		authRequired.GET("/users/:id", handlers.GETUser)
+		authRequired.GET("/contributions/:id", handlers.GetContribution)
+	}
+	
 
 	// サーバーをポート8080で起動
 	if err := r.Run("localhost:8081"); err != nil {
