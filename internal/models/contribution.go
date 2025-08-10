@@ -1,9 +1,5 @@
 package models
 
-import (
-
-)
-
 // GraphQLリクエストの構造体
 type GraphQLRequest struct {
 	Query     string                 `json:"query"`
@@ -24,9 +20,9 @@ type GithubResponse struct {
 					} `json:"repository"`
 					Contributions struct {
 						Nodes []struct {
-							CommitCount  int    `json:"commitCount"`
-							OccurredAt   string `json:"occurredAt"`
-							User struct {
+							CommitCount int    `json:"commitCount"`
+							OccurredAt  string `json:"occurredAt"`
+							User        struct {
 								Login string `json:"login"`
 							} `json:"user"`
 						} `json:"nodes"`

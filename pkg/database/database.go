@@ -2,13 +2,31 @@ package database
 
 import (
 	"context"
+	"geekcamp-vol10-backend/internal/config"
 	"log"
+	"os"
 
 	"cloud.google.com/go/firestore"
 	firebase "firebase.google.com/go/v4"
 	"google.golang.org/api/option"
-	"geekcamp-vol10-backend/internal/config"
 )
+
+const HostEnvKey = "FIRESTORE_EMULATOR_HOST" // URLlocalhost:8080
+const Project = "my-first-firebase-57a45"    // projectID
+
+// Firestoreクライアント生成
+func NewFirestoreClient(ctx context.Context) *firestore.Client {
+	_, url := os.LookupEnv(HostEnvKey)
+	if !url {
+		log.Fatalf("required env %s", HostEnvKey)
+	}
+
+	client, err := firestore.NewClient(ctx, Project)
+	if err != nil {
+		log.Fatalf("Firestoreクライアントでエラー: %v", err)
+	}
+	return client
+}
 
 var (
 	// グローバルなFirestoreクライアント
@@ -24,7 +42,7 @@ func InitializeFirestore(ctx context.Context, cfg *config.Config) error {
 	// エミュレータモードかどうかを判定
 	if cfg.FirestoreEmulatorHost != "" {
 		log.Println("Firestore エミュレータモードで初期化します")
-		
+
 		// エミュレータ用の設定
 		if cfg.GCloudProject == "" {
 			log.Fatal("エミュレータ利用時は環境変数 'GCLOUD_PROJECT' が必要です")
@@ -41,7 +59,7 @@ func InitializeFirestore(ctx context.Context, cfg *config.Config) error {
 
 	} else {
 		log.Println("本番環境のFirestoreで初期化します")
-		
+
 		// 本番環境用の設定
 		if cfg.FirebaseCredentials == "" {
 			log.Fatal("本番環境利用時は環境変数 'CREDENTIALS' が必要です")
@@ -82,4 +100,5 @@ func GetFirestoreClient() *firestore.Client {
 // GetFirebaseApp はFirebaseアプリを返します
 func GetFirebaseApp() *firebase.App {
 	return FirebaseApp
+
 }

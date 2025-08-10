@@ -4,9 +4,13 @@ import (
 	"context"
 	"log"
 	"net/http"
+
 	"github.com/gin-gonic/gin"
-	"geekcamp-vol10-backend/internal/handlers"
+
+	"geekcamp-vol10-backend/internal/end"
+
 	"geekcamp-vol10-backend/internal/config"
+	"geekcamp-vol10-backend/internal/handlers"
 	"geekcamp-vol10-backend/pkg/database"
 	//"geekcamp-vol10-backend/internal/middleware"
 )
@@ -14,13 +18,13 @@ import (
 func main() {
 	// 設定を読み込み
 	cfg := config.LoadConfig()
-	
+
 	// Firestoreを初期化
 	ctx := context.Background()
 	if err := database.InitializeFirestore(ctx, cfg); err != nil {
 		log.Fatalf("Firestore の初期化に失敗しました: %v", err)
 	}
-	
+
 	// アプリケーション終了時にFirestoreクライアントをクローズ
 	defer func() {
 		if err := database.CloseFirestore(); err != nil {
@@ -37,14 +41,17 @@ func main() {
 		})
 	})
 
+	end.RegisterUserRoutes(r)
+	end.GETUserRoutes(r)
+
 	// authが必要なエンドポイントにmiddleware/auth.goを適用
 	authRequired := r.Group("/")
 	authRequired.GET("/contributions/:id", handlers.GetContribution)
 	/*
-	authRequired.Use(middleware.AuthMiddleware())
-	{
-		authRequired.GET("/contributions/:id", handlers.GetContribution)
-	}
+		authRequired.Use(middleware.AuthMiddleware())
+		{
+			authRequired.GET("/contributions/:id", handlers.GetContribution)
+		}
 	*/
 
 	// サーバーをポート8080で起動
@@ -52,4 +59,5 @@ func main() {
 		// エラーが発生した場合、ログに詳細を出力してプログラムを終了する
 		log.Fatalf("サーバーの起動に失敗しました: %v", err)
 	}
+
 }
