@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	"geekcamp-vol10-backend/internal/models"
@@ -9,30 +10,71 @@ import (
 	"cloud.google.com/go/firestore"
 )
 
+// UserRepository 構造体
 type UserRepository struct {
 	Client *firestore.Client
 }
 
+// NewUserRepository creates a new UserRepository
 func NewUserRepository(client *firestore.Client) *UserRepository {
-	return &UserRepository{Client: client}
+	return &UserRepository{
+		Client: client,
+	}
 }
 
+
 // userコレクション保存
-func (r *UserRepository) SaveUser(ctx context.Context, user models.User) error {
+func SaveUser(ctx context.Context, db *firestore.Client, user models.User) error {
 	log.Printf("SaveUser: ユーザー '%s' を保存中...", user.FirebaseId)
-	_, err := r.Client.Collection("users").Doc(user.FirebaseId).Set(ctx, map[string]interface{}{
+	log.Printf("SaveUser: Firestoreクライアント状態: %v", db != nil)
+
+	if db == nil {
+		log.Printf("SaveUser: Firestoreクライアントがnilです")
+		return fmt.Errorf("Firestoreクライアントが初期化されていません")
+	}
+
+	// ユーザー情報をFirestoreに保存
+	userData := map[string]interface{}{
+		"firebaseId":           user.FirebaseId,
 		"githubUserName":       user.GithubUserName,
 		"photoURL":             user.PhotoURL,
 		"createdAt":            user.CreatedAt,
 		"continuousSealRecord": user.ContinuousSealRecord,
 		"maxSealRecord":        user.MaxSealRecord,
-	})
-	if err != nil {
-		log.Printf("SaveUser: ユーザー保存エラー: %v", err)
-	} else {
-		log.Printf("SaveUser: ユーザー保存成功")
 	}
-	return err
+
+	log.Printf("SaveUser: Firestoreに保存するデータ: %+v", userData)
+	_, err := db.Collection("users").Doc(user.FirebaseId).Set(ctx, userData)
+	if err != nil {
+		log.Printf("SaveUser: Firestore保存エラー: %v", err)
+		return err
+	}
+
+	log.Printf("SaveUser: ユーザー '%s' の保存に成功しました", user.FirebaseId)
+
+	// currentMonsterサブコレクションの初期値を保存
+	log.Printf("SaveUser: currentMonsterサブコレクションの初期値を作成中...")
+	currentMonsterData := map[string]interface{}{
+		"monsterId":                   "001", // 初期モンスターID
+		"progressContributions":       0,
+		"requiredContributions":       30, // 初期モンスターの必要コントリビューション数
+		"lastContributionReflectedAt": user.CreatedAt,
+		"assignedAt":                  user.CreatedAt,
+	}
+	
+	// ドキュメント名をmonsterIdとして使用（"001"）
+	_, err = db.Collection("users").Doc(user.FirebaseId).Collection("currentMonster").Doc("001").Set(ctx, currentMonsterData)
+	if err != nil {
+		log.Printf("SaveUser: currentMonster初期値の保存に失敗: %v", err)
+		return fmt.Errorf("currentMonster初期値の保存に失敗: %v", err)
+	}
+	log.Printf("SaveUser: currentMonster初期値の保存に成功（monsterId: 001）")
+
+	// sealedMonstersサブコレクションは初期状態では空なので、プレースホルダーは作成しない
+	log.Printf("SaveUser: sealedMonstersサブコレクションは初期状態では空のため、プレースホルダーは作成しません")
+
+	log.Printf("SaveUser: ユーザー '%s' とサブコレクションの初期化が完了しました", user.FirebaseId)
+	return nil
 }
 
 // サブコレクションでcurrentMonster

@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 
-	"geekcamp-vol10-backend/internal/repositories"
 	"geekcamp-vol10-backend/internal/services"
 	"geekcamp-vol10-backend/pkg/database"
 
@@ -40,19 +39,19 @@ func Users(c *gin.Context) {
 	
 	log.Printf("Firestoreクライアントの取得成功")
 
-	userRepo := repositories.NewUserRepository(client)
-	userService := services.NewUserService(userRepo)
-
-	log.Printf("CreateUserを呼び出し中...")
-	mainData, err := userService.CreateUser(ctx, req.FirebaseId, req.GithubUserName, req.PhotoURL)
+	// services.CreateUserを使用してユーザーを作成
+	userData, err := services.CreateUser(ctx, client, req.FirebaseId, req.GithubUserName, req.PhotoURL)
 	if err != nil {
-		log.Printf("CreateUserでエラー: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed"})
+		log.Printf("CreateUser: ユーザー作成に失敗: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
 		return
 	}
 
-	log.Printf("ユーザー作成成功: %+v", mainData)
-	c.JSON(http.StatusOK, mainData)
+	log.Printf("ユーザーデータの保存に成功しました: FirebaseId='%s'", req.FirebaseId)
+	c.JSON(http.StatusOK, gin.H{
+		"message": "User created successfully",
+		"user":    userData,
+	})
 }
 
 func GETUser(c *gin.Context) {

@@ -6,7 +6,7 @@ type User struct {
 	FirebaseId           string           `json:"firebaseId"`
 	GithubUserName       string           `json:"githubUserName"`
 	PhotoURL             string           `json:"photoURL"`
-	CreatedAt            int64            `json:"createdAt" firestore:"createdAt"`
+	CreatedAt            time.Time            `json:"createdAt" firestore:"createdAt"`
 	ContinuousSealRecord int64            `json:"continuousSealRecord"`
 	MaxSealRecord        int64            `json:"maxSealRecord"`
 	CurrentMonster       *CurrentMonster  `firestore:"currentMonster,omitempty"`
