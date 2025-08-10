@@ -218,7 +218,7 @@ GitHubから最新のコントリビューションを取得し、モンスタ�
 ## エンドポイントテスト
 #### `POST /users/`
 ```
-curl -X POST http://localhost:8081/users -H "Content-Type: application/json" -d '{"firebaseId":"test-user-123","githubUserName": "plplmwa","photoURL": "https://avatars.githubusercontent.com/u/12345678?v=4"}'
+curl -X POST http://localhost:8081/users -H "Content-Type: application/json" -d '{"firebaseId":"test-1","githubUserName": "plmwa","photoURL": "https://avatars.githubusercontent.com/u/12345678?v=4"}'
 ```
 
 #### `GET /users/:id`
