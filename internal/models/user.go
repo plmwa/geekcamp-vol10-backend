@@ -13,7 +13,7 @@ type User struct {
 }
 
 type CurrentMonster struct {
-	MonsterId                   int       `json:"monsterId"`
+	MonsterId                   string    `json:"monsterId"`
 	ProgressContributions       int       `json:"progressContributions"`
 	LastContributionReflectedAt time.Time `json:"lastContributionReflectedAt"`
 	AssignedAt                  time.Time `json:"assignedAt"`
