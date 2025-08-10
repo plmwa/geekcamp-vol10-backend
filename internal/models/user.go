@@ -3,14 +3,16 @@ package models
 import "time"
 
 type User struct {
-	FirebaseId           string          `json:"firebaseId"`
-	GithubUserName       string          `json:"githubUserName"`
-	PhotoURL             string          `json:"photoURL"`
-	CreatedAt            time.Time       `json:"createdAt"`
-	ContinuousSealRecord int             `json:"continuousSealRecord"`
-	MaxSealRecord        int             `json:"maxSealRecord"`
-	CurrentMonster       *CurrentMonster `firestore:"currentMonster,omitempty"`
+	FirebaseId           string           `json:"firebaseId"`
+	GithubUserName       string           `json:"githubUserName"`
+	PhotoURL             string           `json:"photoURL"`
+	CreatedAt            int64            `json:"createdAt" firestore:"createdAt"`
+	ContinuousSealRecord int64            `json:"continuousSealRecord"`
+	MaxSealRecord        int64            `json:"maxSealRecord"`
+	CurrentMonster       *CurrentMonster  `firestore:"currentMonster,omitempty"`
+	SealedMonsters       []SealedMonster  `json:"sealedMonsters" firestore:"sealedMonsters,omitempty"`
 }
+
 
 type CurrentMonster struct {
 	MonsterId                   string    `json:"monsterId"`
@@ -21,7 +23,7 @@ type CurrentMonster struct {
 }
 
 type SealedMonster struct {
-	MonsterId   string `json:"monsterId"`
-	MonsterName string `json:"monsterName"`
-	SealedAt    int    `json:"sealedAt"`
+	MonsterId   string    `json:"monsterId"`
+	MonsterName string    `json:"monsterName"`
+	SealedAt    time.Time `json:"sealedAt"`
 }

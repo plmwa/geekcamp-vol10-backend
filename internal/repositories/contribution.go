@@ -62,17 +62,16 @@ func SaveContribution(id string, githubData models.GithubResponse) (models.Curre
 	
 	// 現在のcurrentMonster情報を取得
 	currentMonster := models.CurrentMonster{
-		MonsterID:                   getString(currentMonsterData, "monsterId"),
+		MonsterId:                   getString(currentMonsterData, "monsterId"),
 		ProgressContributions:       getInt(currentMonsterData, "progressContributions"),
 		RequiredContributions:       getInt(currentMonsterData, "requiredContributions"),
-		LastContributionReflectedAt: getTimestamp(currentMonsterData, "lastContributionReflectedAt"),
-		AssignedAt:                  getTimestamp(currentMonsterData, "assignedAt"),
+		LastContributionReflectedAt: getTimestampAsTime(currentMonsterData, "lastContributionReflectedAt"),
+		AssignedAt:                  getTimestampAsTime(currentMonsterData, "assignedAt"),
 	}
 	
 	// lastContributionReflectedAtよりも最新のコントリビューションをgithubDataから取り出す
-	lastReflectedTime, err := time.Parse(time.RFC3339, currentMonster.LastContributionReflectedAt)
-	if err != nil {
-		log.Printf("lastContributionReflectedAtのパースに失敗しました: %v", err)
+	lastReflectedTime := currentMonster.LastContributionReflectedAt
+	if lastReflectedTime.IsZero() {
 		lastReflectedTime = time.Now().AddDate(0, 0, -30) // 30日前をデフォルトとする
 	}
 	
@@ -82,7 +81,7 @@ func SaveContribution(id string, githubData models.GithubResponse) (models.Curre
 	
 	// 合計した値をprogressContributionsに足す
 	updatedProgressContributions := currentMonster.ProgressContributions + newContributions
-	now := time.Now().Format(time.RFC3339)
+	now := time.Now()
 	
 	// デバッグ情報を詳細に出力
 	log.Printf("=== コントリビューション計算結果 ===")
@@ -120,7 +119,7 @@ func SaveContribution(id string, githubData models.GithubResponse) (models.Curre
 		}
 		
 		// 次のモンスターを取得して設定
-		nextMonster, err := getNextMonster(ctx, db, currentMonster.MonsterID)
+		nextMonster, err := getNextMonster(ctx, db, currentMonster.MonsterId)
 		if err != nil {
 			log.Printf("次のモンスター取得に失敗しました: %v", err)
 			return models.CurrentMonster{}, fmt.Errorf("次のモンスター取得に失敗しました")
@@ -133,7 +132,7 @@ func SaveContribution(id string, githubData models.GithubResponse) (models.Curre
 		log.Printf("次のモンスターの必要コントリビューション数: %d (monstersコレクションから取得)", nextMonster.RequiredContributions)
 		
 		newCurrentMonster := models.CurrentMonster{
-			MonsterID:                   nextMonster.MonsterID,
+			MonsterId:                   nextMonster.MonsterId,
 			ProgressContributions:       carryOverContributions,
 			RequiredContributions:       nextMonster.RequiredContributions, // monstersコレクションから取得した値を使用
 			LastContributionReflectedAt: now,
@@ -250,6 +249,22 @@ func getTimestamp(data map[string]interface{}, key string) string {
 	return time.Now().Format(time.RFC3339)
 }
 
+// ヘルパー関数: map[string]interface{}からタイムスタンプをtime.Time型で取得
+func getTimestampAsTime(data map[string]interface{}, key string) time.Time {
+	// Firestoreのタイムスタンプは通常time.Time型で格納される
+	if value, ok := data[key].(time.Time); ok {
+		return value
+	}
+	// 文字列として格納されている場合はパースを試行
+	if value, ok := data[key].(string); ok {
+		if parsedTime, err := time.Parse(time.RFC3339, value); err == nil {
+			return parsedTime
+		}
+	}
+	// タイムスタンプが見つからない場合は現在時刻を返す
+	return time.Now()
+}
+
 // GitHubデータから指定した日時以降の新しいコントリビューションを計算
 func calculateNewContributions(githubData models.GithubResponse, lastReflectedTime time.Time) int {
 	totalNewContributions := 0
@@ -285,7 +300,7 @@ func calculateNewContributions(githubData models.GithubResponse, lastReflectedTi
 // 現在のモンスターを封印済みに移動
 func sealCurrentMonster(ctx context.Context, db *firestore.Client, userID string, monster models.CurrentMonster) error {
 	// monstersコレクションからモンスター名を取得
-	monsterDoc, err := db.Collection("monsters").Doc(monster.MonsterID).Get(ctx)
+	monsterDoc, err := db.Collection("monsters").Doc(monster.MonsterId).Get(ctx)
 	if err != nil {
 		return fmt.Errorf("モンスター情報の取得に失敗しました: %v", err)
 	}
@@ -293,15 +308,13 @@ func sealCurrentMonster(ctx context.Context, db *firestore.Client, userID string
 	monsterData := monsterDoc.Data()
 	monsterName := getString(monsterData, "name")
 	
-	// モンスター名が取得できない場合はデフォルト名を使用
-	if monsterName == "" {
-		monsterName = "モンスター" + monster.MonsterID
-		log.Printf("警告: モンスターID '%s' の名前が取得できませんでした。デフォルト名を使用します: %s", monster.MonsterID, monsterName)
-	}
-	
-	// sealedMonstersサブコレクションに追加
+		// モンスター名が取得できない場合はデフォルト名を使用
+		if monsterName == "" {
+			monsterName = "モンスター" + monster.MonsterId
+			log.Printf("警告: モンスターID '%s' の名前が取得できませんでした。デフォルト名を使用します: %s", monster.MonsterId, monsterName)
+		}	// sealedMonstersサブコレクションに追加
 	sealedData := map[string]interface{}{
-		"monsterId":   monster.MonsterID,
+		"monsterId":   monster.MonsterId,
 		"monsterName": monsterName,
 		"sealedAt":    time.Now().Format(time.RFC3339),
 	}
@@ -313,7 +326,7 @@ func sealCurrentMonster(ctx context.Context, db *firestore.Client, userID string
 		return fmt.Errorf("封印済みモンスターの保存に失敗しました: %v", err)
 	}
 	
-	log.Printf("モンスター '%s' (%s) をユーザー '%s' の封印済みモンスターに追加しました", monsterName, monster.MonsterID, userID)
+	log.Printf("モンスター '%s' (%s) をユーザー '%s' の封印済みモンスターに追加しました", monsterName, monster.MonsterId, userID)
 	return nil
 }
 
@@ -354,18 +367,18 @@ func getNextMonster(ctx context.Context, db *firestore.Client, currentMonsterID 
 	log.Printf("次のモンスター情報: ID=%s, 必要コントリビューション数=%d", nextMonsterID, requiredContributions)
 	
 	return models.CurrentMonster{
-		MonsterID:             nextMonsterID,
+		MonsterId:             nextMonsterID,
 		RequiredContributions: requiredContributions,
 		ProgressContributions: 0, // 新しいモンスターは0からスタート
-		AssignedAt:           time.Now().Format(time.RFC3339),
-		LastContributionReflectedAt: time.Now().Format(time.RFC3339),
+		AssignedAt:           time.Now(),
+		LastContributionReflectedAt: time.Now(),
 	}, nil
 }
 
 // currentMonsterを更新
 func updateCurrentMonster(ctx context.Context, db *firestore.Client, userID, docID string, monster models.CurrentMonster) error {
 	updateData := map[string]interface{}{
-		"monsterId":                   monster.MonsterID,
+		"monsterId":                   monster.MonsterId,
 		"progressContributions":       monster.ProgressContributions,
 		"requiredContributions":       monster.RequiredContributions,
 		"lastContributionReflectedAt": monster.LastContributionReflectedAt,
