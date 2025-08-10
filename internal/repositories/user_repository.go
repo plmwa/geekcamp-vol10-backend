@@ -55,20 +55,20 @@ func SaveUser(ctx context.Context, db *firestore.Client, user models.User) error
 	// currentMonsterサブコレクションの初期値を保存
 	log.Printf("SaveUser: currentMonsterサブコレクションの初期値を作成中...")
 	currentMonsterData := map[string]interface{}{
-		"monsterId":                   "001", // 初期モンスターID
+		"monsterId":                   "001", // 初期モンスターID（スライム）
 		"progressContributions":       0,
-		"requiredContributions":       30, // 初期モンスターの必要コントリビューション数
+		"requiredContributions":       30, // 初期モンスター（スライム）の必要コントリビューション数
 		"lastContributionReflectedAt": user.CreatedAt,
 		"assignedAt":                  user.CreatedAt,
 	}
 	
-	// ドキュメント名をmonsterIdとして使用（"001"）
-	_, err = db.Collection("users").Doc(user.FirebaseId).Collection("currentMonster").Doc("001").Set(ctx, currentMonsterData)
+	// ドキュメントIDは自動生成（README.mdの仕様通り）
+	_, _, err = db.Collection("users").Doc(user.FirebaseId).Collection("currentMonster").Add(ctx, currentMonsterData)
 	if err != nil {
 		log.Printf("SaveUser: currentMonster初期値の保存に失敗: %v", err)
 		return fmt.Errorf("currentMonster初期値の保存に失敗: %v", err)
 	}
-	log.Printf("SaveUser: currentMonster初期値の保存に成功（monsterId: 001）")
+	log.Printf("SaveUser: currentMonster初期値の保存に成功（monsterId: 001, requiredContributions: 30）")
 
 	// sealedMonstersサブコレクションは初期状態では空なので、プレースホルダーは作成しない
 	log.Printf("SaveUser: sealedMonstersサブコレクションは初期状態では空のため、プレースホルダーは作成しません")
