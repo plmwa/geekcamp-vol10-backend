@@ -15,7 +15,6 @@ type Config struct {
 	
 	// GitHub関連
 	GitHubToken    string
-	GitHubUserName string
 	
 	// エミュレータ関連
 	FirestoreEmulatorHost string
@@ -36,7 +35,6 @@ func LoadConfig() *Config {
 		FirebaseCredentials:      os.Getenv("CREDENTIALS"),
 		GCloudProject:           os.Getenv("GCLOUD_PROJECT"),
 		GitHubToken:             os.Getenv("GITHUB_TOKEN"),
-		GitHubUserName:          os.Getenv("GITHUB_USER_NAME"),
 		FirestoreEmulatorHost:   os.Getenv("FIRESTORE_EMULATOR_HOST"),
 		FirebaseAuthEmulatorHost: os.Getenv("FIREBASE_AUTH_EMULATOR_HOST"),
 		Port:                    getEnvWithDefault("PORT", "8081"),

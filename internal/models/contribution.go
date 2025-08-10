@@ -35,11 +35,3 @@ type GithubResponse struct {
 		Message string `json:"message"`
 	} `json:"errors"`
 }
-
-type CurrentMonster struct {
-	MonsterID                   string `json:"monsterId"`
-	ProgressContributions       int    `json:"progressContributions"`
-	RequiredContributions       int    `json:"requiredContributions"`
-	LastContributionReflectedAt string `json:"lastContributionReflectedAt"`
-	AssignedAt                  string `json:"assignedAt"`
-}

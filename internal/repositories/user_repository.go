@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"log"
 
 	"geekcamp-vol10-backend/internal/models"
 
@@ -18,18 +19,25 @@ func NewUserRepository(client *firestore.Client) *UserRepository {
 
 // userコレクション保存
 func (r *UserRepository) SaveUser(ctx context.Context, user models.User) error {
+	log.Printf("SaveUser: ユーザー '%s' を保存中...", user.FirebaseId)
 	_, err := r.Client.Collection("users").Doc(user.FirebaseId).Set(ctx, map[string]interface{}{
 		"githubUserName":       user.GithubUserName,
 		"photoURL":             user.PhotoURL,
 		"createdAt":            user.CreatedAt,
-		"continuousSealRecord": user.ContinuousSealRecord, // contributionからもらう
+		"continuousSealRecord": user.ContinuousSealRecord,
 		"maxSealRecord":        user.MaxSealRecord,
 	})
+	if err != nil {
+		log.Printf("SaveUser: ユーザー保存エラー: %v", err)
+	} else {
+		log.Printf("SaveUser: ユーザー保存成功")
+	}
 	return err
 }
 
 // サブコレクションでcurrentMonster
 func (r *UserRepository) SaveCurrentMonster(ctx context.Context, firebaseId string, monster models.CurrentMonster) error {
+	log.Printf("SaveCurrentMonster: ユーザー '%s' のcurrentMonsterを保存中...", firebaseId)
 	_, err := r.Client.Collection("users").Doc(firebaseId).Collection("currentMonster").Doc("monster").Set(ctx, map[string]interface{}{
 		"monsterId":                   monster.MonsterId,
 		"progressContributions":       monster.ProgressContributions,
@@ -37,16 +45,27 @@ func (r *UserRepository) SaveCurrentMonster(ctx context.Context, firebaseId stri
 		"assignedAt":                  monster.AssignedAt,
 		"requiredContributions":       monster.RequiredContributions, // contributionからもらう
 	})
+	if err != nil {
+		log.Printf("SaveCurrentMonster: currentMonster保存エラー: %v", err)
+	} else {
+		log.Printf("SaveCurrentMonster: currentMonster保存成功")
+	}
 	return err
 }
 
 // SealedMonsters
 func (r *UserRepository) SaveSealedMonster(ctx context.Context, firebaseId string, sealed models.SealedMonster) error {
+	log.Printf("SaveSealedMonster: ユーザー '%s' のsealedMonster '%s' を保存中...", firebaseId, sealed.MonsterId)
 	_, err := r.Client.Collection("users").Doc(firebaseId).Collection("sealedMonsters").Doc(sealed.MonsterId).Set(ctx, map[string]interface{}{
 		"monsterId":   sealed.MonsterId,
 		"monsterName": sealed.MonsterName,
-		"SealedAt":    sealed.SealedAt,
+		"sealedAt":    sealed.SealedAt,
 	})
+	if err != nil {
+		log.Printf("SaveSealedMonster: sealedMonster保存エラー: %v", err)
+	} else {
+		log.Printf("SaveSealedMonster: sealedMonster保存成功")
+	}
 	return err
 }
 

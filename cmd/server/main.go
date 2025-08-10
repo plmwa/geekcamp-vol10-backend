@@ -7,8 +7,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"geekcamp-vol10-backend/internal/end"
-
 	"geekcamp-vol10-backend/internal/config"
 	"geekcamp-vol10-backend/internal/handlers"
 	"geekcamp-vol10-backend/pkg/database"
@@ -41,11 +39,11 @@ func main() {
 		})
 	})
 
-	end.RegisterUserRoutes(r)
-	end.GETUserRoutes(r)
 
 	// authが必要なエンドポイントにmiddleware/auth.goを適用
 	authRequired := r.Group("/")
+	authRequired.POST("/users", handlers.Users)
+	authRequired.GET("/users/:id", handlers.GETUser)
 	authRequired.GET("/contributions/:id", handlers.GetContribution)
 	/*
 		authRequired.Use(middleware.AuthMiddleware())

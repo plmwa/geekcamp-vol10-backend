@@ -179,6 +179,10 @@
         "lastContributionReflectedAt": "2025-08-08T22:15:00Z",
         "assignedAt": "2025-08-01T18:00:00Z"
       }
+      "sealedMonsters": [
+        {"monsterId":"001","monsterName":"スライム","sealedAt":"2025-08-09T15:54:50.45Z"},
+        {"monsterId":"002","monsterName":"デカスライム","sealedAt":"2025-08-10T03:09:04+09:00"}
+      ]
     }
     ```
 
@@ -210,3 +214,18 @@ GitHubから最新のコントリビューションを取得し、モンスタ�
       "assignedAt": "2025-08-01T18:00:00Z"
     }
     ```
+
+## エンドポイントテスト
+#### `POST /users/`
+```
+curl -X POST http://localhost:8081/users -H "Content-Type: application/json" -d '{"firebaseId":"test-user-123","githubUserName": "plplmwa","photoURL": "https://avatars.githubusercontent.com/u/12345678?v=4"}'
+```
+
+#### `GET /users/:id`
+```
+curl -X GET http://localhost:8081/users/Hce2hzzylPvC2LQ7BATjDwAegcbl
+```
+#### `GET /contributions/:id`
+```
+curl -X GET http://localhost:8081/contributions/Hce2hzzylPvC2LQ7BATjDwAegcbl
+```
