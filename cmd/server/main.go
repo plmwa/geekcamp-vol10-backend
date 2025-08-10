@@ -1,20 +1,33 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
-
 	"github.com/gin-gonic/gin"
-
-	"geekcamp-vol10-backend/internal/end"
-	//"geekcamp-vol10-backend/internal/config"
-	//"geekcamp-vol10-backend/internal/handlers"
+	"geekcamp-vol10-backend/internal/handlers"
+	"geekcamp-vol10-backend/internal/config"
+	"geekcamp-vol10-backend/pkg/database"
 	//"geekcamp-vol10-backend/internal/middleware"
-	//"geekcamp-vol10-backend/internal/repositories"
-	//"geekcamp-vol10-backend/internal/services"
 )
 
 func main() {
+	// 設定を読み込み
+	cfg := config.LoadConfig()
+	
+	// Firestoreを初期化
+	ctx := context.Background()
+	if err := database.InitializeFirestore(ctx, cfg); err != nil {
+		log.Fatalf("Firestore の初期化に失敗しました: %v", err)
+	}
+	
+	// アプリケーション終了時にFirestoreクライアントをクローズ
+	defer func() {
+		if err := database.CloseFirestore(); err != nil {
+			log.Printf("Firestore のクローズに失敗しました: %v", err)
+		}
+	}()
+
 	// Ginルーターを初期化
 	r := gin.Default()
 
@@ -24,32 +37,19 @@ func main() {
 		})
 	})
 
-	// /ping エンドポイントを定義
-	r.GET("/ping", end.Ping)
-	r.GET("/hello", end.Hello)
-	r.GET("/bye", end.Bye)
+	// authが必要なエンドポイントにmiddleware/auth.goを適用
+	authRequired := r.Group("/")
+	authRequired.GET("/contributions/:id", handlers.GetContribution)
+	/*
+	authRequired.Use(middleware.AuthMiddleware())
+	{
+		authRequired.GET("/contributions/:id", handlers.GetContribution)
+	}
+	*/
 
 	// サーバーをポート8080で起動
-	if err := r.Run("localhost:8080"); err != nil {
+	if err := r.Run("localhost:8081"); err != nil {
 		// エラーが発生した場合、ログに詳細を出力してプログラムを終了する
 		log.Fatalf("サーバーの起動に失敗しました: %v", err)
 	}
-
-	/*
-	userRoutes := r.Group("/users")
-	{
-		userRoutes.GET("", userHandler.GetAll) // GET /users/
-		userRoutes.POST("", userHandler.Register) // POST /users/
-	}
-
-	monsterRoutes := r.Group("/monsters")
-	monsterRoutes.Use(authMiddleware.Authenticate) 
-	{
-		monsterRoutes.GET("", monsterHandler.GetByUID)
-	}
-
-	if err := r.Run(":8080"); err != nil {
-		log.Fatalf("サーバーの起動に失敗しました: %v", err)
-	}
-	*/
 }
