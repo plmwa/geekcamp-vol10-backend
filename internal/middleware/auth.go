@@ -1,16 +1,16 @@
 package middleware
 
-
 import (
 	"context"
 	"log"
 	"net/http"
 	"os"
 	"strings"
-	"firebase.google.com/go/v4"
+
+	firebase "firebase.google.com/go/v4"
 	"github.com/gin-gonic/gin"
-	"google.golang.org/api/option"
 	"github.com/joho/godotenv"
+	"google.golang.org/api/option"
 )
 
 // firebaseAppをグローバル変数として保持
@@ -112,5 +112,4 @@ func AuthMiddleware() gin.HandlerFunc {
 	}
 }
 
-func Auth
-
+// func Auth
